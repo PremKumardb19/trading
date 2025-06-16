@@ -1,0 +1,10 @@
+<div class="auth-container">
+  <h2>Login</h2>
+  <form id="loginForm">
+    {{input type="text" placeholder="Username" value=username required="required"}}
+    {{input type="password" placeholder="Password" value=password required="required"}}
+    <button type="submit">Login</button>
+     <p>Doesn't have an account?<a href="/register">Register</a></p>
+  </form>
+  <p>{{status}}</p>
+</div>

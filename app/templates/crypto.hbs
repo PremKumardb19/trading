@@ -1,0 +1,53 @@
+<h2 style="text-align:center; color: #2c3e50;">{{model.details.name}} Details</h2>
+
+<p style="text-align:center; font-size: 18px; color: #34495e;">
+  <b>Price:</b> ${{model.details.priceUsd}} &nbsp;|&nbsp;
+  <b>Change:</b>
+  <span style="color:{{if (is-negative model.details.changePercent24Hr) "red" "green"}};">
+    {{model.details.changePercent24Hr}}%
+  </span>
+</p>
+
+<div id="cryptoChart" style="width: 90%; margin: auto; border: 1px solid #ccc; padding: 10px;">
+
+</div>
+
+
+<div style="width: 90%; margin: auto; margin-top: 20px; padding: 15px; border: 1px solid #ccc;">
+  <h3>Trade {{model.details.name}}</h3>
+
+<form id="tradeForm" {{action "handleTrade" on="submit" target=this}}>
+  <label>
+    {{#if buySelected}}Amount in USD:{{else}}Amount in {{model.details.symbol}}:{{/if}}
+    {{input 
+      type="number" 
+      step=(if buySelected "1" "0.00000001") 
+      min="0.00000001" 
+      placeholder=(if buySelected "Enter USD amount" "Enter crypto amount") 
+      value=amount 
+      required="required"
+    }}
+  </label>
+
+  <br><br>
+
+  <select onchange={{action "updateType" value="target.value"}}>
+    <option value="buy" selected={{buySelected}}>Buy</option>
+    <option value="sell" selected={{sellSelected}}>Sell</option>
+  </select>
+
+  <button type="submit">Confirm Trade</button>
+</form>
+
+{{#if this.tradeStatus}}
+  <p style="margin-top: 10px; color: #2980b9;">{{this.tradeStatus}}</p>
+{{/if}}
+
+<hr>
+<h4>Your USD Balance: ${{this.usdBalance}}</h4>
+<h4>Your {{model.details.name}} Holdings</h4>
+<p><b>Quantity:</b> {{this.holdingAmount}} {{model.details.symbol}}</p>
+<p style="color:green;"><b>Profit:</b> ${{this.holdingProfit}}</p>
+<p style="color:red;"><b>Loss:</b> ${{this.holdingLoss}}</p>
+
+</div>
