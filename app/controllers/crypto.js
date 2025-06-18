@@ -1,6 +1,13 @@
 import Ember from 'ember';
 
 export default Ember.Controller.extend({
+  username: '',
+  email: '',
+  password: '',
+  usdBalance: '0.00',
+  holdingAmount: '0.00000000',
+  holdingProfit: '0.00',
+  holdingLoss: '0.00',
   chart: null,
   amount: '',
   tradeType: 'buy',
@@ -14,15 +21,19 @@ export default Ember.Controller.extend({
   buySelected: Ember.computed.equal('tradeType', 'buy'),
   sellSelected: Ember.computed.equal('tradeType', 'sell'),
 
+
+  init() {
+    this._super(...arguments);
+  },  pollinginterval: null,
+
   startPolling() {
     this.fetchCandle();
     this.setupChart();
-
     if (!this.pollinginterval) {
-      this.set('pollinginterval', setInterval(() => {
-        this.fetchCandle();
-        this.setupChart();
-      }, 2000));
+      this.pollinginterval = setInterval(() => {
+        this.fetchCandle()
+        this.setupChart()
+      }, 2000);
     }
   },
 
@@ -33,69 +44,126 @@ export default Ember.Controller.extend({
     }
   },
 
-  isNegative(value) {
-    return parseFloat(value) < 0;
+
+  handleRegister(event) {
+    event.preventDefault();
+
+    const username = this.get('username');
+    const email = this.get('email');
+    const password = this.get('password');
+
+    if (!username || !email || !password) {
+      alert('All fields are required!');
+      return;
+    }
+
+    const payload = { username, email, password };
+
+    fetch('http://localhost:1010/trading-backend/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.status === 'success' && data.token) {
+          localStorage.setItem("email", email);
+          localStorage.setItem("token", data.token);
+          alert('Registration successful!');
+          this.set('username', '');
+          this.set('email', '');
+          this.set('password', '');
+          this.transitionToRoute('dashboard');
+        } else {
+          alert('Registration failed: ' + (data.message || 'Unknown error'));
+        }
+      })
+      .catch((err) => {
+        alert('Error connecting to backend: ' + err.message);
+      });
   },
 
   fetchCandle() {
     let model = this.get('model');
     let baseId = model && model.baseId;
-    if (!baseId) return;
+    if (!baseId){
+      return;
+    }
 
-    return Ember.$.getJSON(`http://localhost:1010/trading-backend/candles?baseId=${baseId}&quoteId=tether`)
-      .then(candleData => {
-        model.candles = candleData;
-        this.set('model', model);
-      })
-      .catch(err => {
-        console.error("API fetch error:", err);
-      });
+    const token = localStorage.getItem("token");
+    let self=this;
+    return Ember.$.ajax({
+      url: `http://localhost:1010/trading-backend/candles?baseId=${baseId}&quoteId=tether`,
+      headers: { 'Authorization': `Bearer ${token}` }
+    ,success(candleData){
+      model.candles = candleData;
+      self.set('model', model);
+
+      
+    }
+    ,error(err) {
+      console.error("API fetch error:", err);
+    }
+    });
   },
 
   fetchBalance() {
     const email = localStorage.getItem('email');
-    if (!email) return;
+    const token = localStorage.getItem('token');
+    if (!email){
+      return;
+    }
 
-    fetch(`http://localhost:1010/trading-backend/balance?email=${email}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.balance) {
-          this.set('usdBalance', parseFloat(data.balance).toFixed(2));
-        }
-      })
-      .catch(err => {
-        console.error("Error fetching balance", err);
-        this.set('usdBalance', '0.00');
-      });
+    fetch(`http://localhost:1010/trading-backend/balance?email=${email}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.balance) {
+        this.set('usdBalance', parseFloat(data.balance).toFixed(2));
+      }
+    })
+    .catch(err => {
+      console.error("Error fetching balance", err);
+      this.set('usdBalance', '0.00');
+    });
   },
 
   fetchHoldings() {
     const email = localStorage.getItem('email');
+    const token = localStorage.getItem('token');
     const details = this.get('model.details') || {};
     const cryptoId = details.id;
     const priceUsd = details.priceUsd;
 
-    if (!email || !cryptoId || !priceUsd) return;
+    if (!email || !cryptoId || !priceUsd){
+      return;
+    }
 
-    fetch(`http://localhost:1010/trading-backend/holdings?email=${email}&cryptoId=${cryptoId}&priceUsd=${priceUsd}`)
-      .then(res => res.json())
-      .then(data => {
-        const holdingAmount = data.amountHeld || 0;
-        const diff = holdingAmount === 0 ? 0 : data.profitOrLoss;
+    fetch(`http://localhost:1010/trading-backend/holdings?email=${email}&cryptoId=${cryptoId}&priceUsd=${priceUsd}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    .then(res => res.json())
+    .then(data => {
+      const holdingAmount = data.amountHeld || 0;
+      const diff = holdingAmount === 0 ? 0 : data.profitOrLoss;
 
-        this.set('holdingAmount', holdingAmount.toFixed(8));
-        this.set('holdingProfit', diff >= 0 ? diff.toFixed(2) : '0.00');
-        this.set('holdingLoss', diff < 0 ? Math.abs(diff).toFixed(2) : '0.00');
-      })
-      .catch(err => {
-        console.error("Error fetching holdings", err);
-        this.set('holdingAmount', '0.00000000');
-        this.set('holdingProfit', '0.00');
-        this.set('holdingLoss', '0.00');
-      });
+      this.set('holdingAmount', holdingAmount.toFixed(8));
+      this.set('holdingProfit', diff >= 0 ? diff.toFixed(2) : '0.00');
+      this.set('holdingLoss', diff < 0 ? Math.abs(diff).toFixed(2) : '0.00');
+    })
+    .catch(err => {
+      console.error("Error fetching holdings", err);
+      this.set('holdingAmount', '0.00000000');
+      this.set('holdingProfit', '0.00');
+      this.set('holdingLoss', '0.00');
+    });
   },
-
-  setupChart() {
+ setupChart() {
     if (this.chart) {
       this.chart.destroy();
     }
@@ -132,17 +200,10 @@ export default Ember.Controller.extend({
       }
     });
   },
-
   actions: {
-    updateAmount(event) {
+ updateAmount(event) {
       this.set('amount', event.target.value);
-    },
-
-    updateType(type) {
-      this.set('tradeType', type);
-    },
-
-    handleTrade(event) {
+    },handleTrade(event) {
       if (event && typeof event.preventDefault === 'function') {
         event.preventDefault();
       }
@@ -172,7 +233,10 @@ export default Ember.Controller.extend({
 
       fetch('http://localhost:1010/trading-backend/trade', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+         headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
         body: JSON.stringify(tradeData)
       })
         .then(response => {
@@ -206,15 +270,43 @@ export default Ember.Controller.extend({
           this.set('tradeStatus', 'Trade failed. Please try again.');
         });
     }
-  },
+  ,
+      updateType(value){
+       this.set('tradeType', value);
+    },
+    login(event) {
+      event.preventDefault();
 
-  init() {
-    this._super();
-    this.set('tradeType', 'buy');
-    this.fetchBalance();
+      const self = this;
+      const username = this.get('username');
+      const password = this.get('password');
 
-    Ember.run.later(this, () => {
-      this.fetchHoldings();
-    }, 1000);
+      Ember.$.ajax({
+        url: 'http://localhost:1010/trading-backend/login',
+        method: 'POST',
+        data: { username, password },
+        success(response) {
+          if (response.status === "success") {
+            localStorage.setItem("email", response.email || username);
+            if (response.token) {
+              localStorage.setItem("token", response.token);
+            }
+            self.set('status', 'Login successful!');
+            self.transitionToRoute('dashboard');
+          } else {
+            self.set('status', 'Login failed.');
+          }
+        },
+        error(xhr) {
+          self.set('status', 'Login error: ' + xhr.responseText);
+        }
+      });
+    },
+
+    logout() {
+      localStorage.removeItem("email");
+      localStorage.removeItem("token");
+      this.transitionToRoute('login');
+    }
   }
-});
+})
