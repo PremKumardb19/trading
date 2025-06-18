@@ -1,0 +1,31 @@
+<div style="text-align:right; margin-right: 5%; margin-top: 10px;">
+  {{#link-to "funding" class="get-funds-button"}}Get Funds{{/link-to}}
+  {{#link-to "dashboard" class="get-funds-button"}}Crypto Dashboard{{/link-to}}
+  <button {{action "logout"}} class="logout-button" style="margin-left: 15px;">Logout</button>
+
+</div>
+<h2 style="text-align:center; color:#2c3e50;">Latest Crypto News</h2>
+
+<div class="newsContainer">
+  
+    {{#each model.news as |news|}}
+     <div class="newsBox" style="cursor:pointer;">
+        <div class="imgDiv">
+            <img src="{{news.img}}"/>
+           
+            
+        </div>
+        
+        <a href="{{news.url}}"><h3 style="padding: 10px;">{{news.title}}</h3></a>
+        <div class="desc">
+             <p>{{news.description}}</p>
+        </div>
+        <span>{{news.author}}</span>
+
+      </div>
+    {{/each}}
+</div>
+
+<br/>
+
+

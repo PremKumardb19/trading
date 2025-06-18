@@ -9,21 +9,59 @@ export default Ember.Controller.extend({
   holdingAmount: '0.00000000',
   holdingProfit: 0,
   holdingLoss: 0,
+  pollinginterval: null,
 
   buySelected: Ember.computed.equal('tradeType', 'buy'),
   sellSelected: Ember.computed.equal('tradeType', 'sell'),
+
+  startPolling() {
+    this.fetchCandle();
+    this.setupChart();
+
+    if (!this.pollinginterval) {
+      this.set('pollinginterval', setInterval(() => {
+        this.fetchCandle();
+        this.setupChart();
+      }, 2000));
+    }
+  },
+
+  stopPolling() {
+    if (this.pollinginterval) {
+      clearInterval(this.pollinginterval);
+      this.set('pollinginterval', null);
+    }
+  },
 
   isNegative(value) {
     return parseFloat(value) < 0;
   },
 
+  fetchCandle() {
+    let model = this.get('model');
+    let baseId = model && model.baseId;
+    if (!baseId) return;
+
+    return Ember.$.getJSON(`http://localhost:1010/trading-backend/candles?baseId=${baseId}&quoteId=tether`)
+      .then(candleData => {
+        model.candles = candleData;
+        this.set('model', model);
+      })
+      .catch(err => {
+        console.error("API fetch error:", err);
+      });
+  },
+
   fetchBalance() {
     const email = localStorage.getItem('email');
+    if (!email) return;
+
     fetch(`http://localhost:1010/trading-backend/balance?email=${email}`)
       .then(res => res.json())
       .then(data => {
-        if (data.balance)
-          this.set('usdBalance', data.balance.toFixed(2) || '0.00');
+        if (data.balance) {
+          this.set('usdBalance', parseFloat(data.balance).toFixed(2));
+        }
       })
       .catch(err => {
         console.error("Error fetching balance", err);
@@ -33,8 +71,9 @@ export default Ember.Controller.extend({
 
   fetchHoldings() {
     const email = localStorage.getItem('email');
-    const cryptoId = this.get('model.details.id');
-    const priceUsd = this.get('model.details.priceUsd');
+    const details = this.get('model.details') || {};
+    const cryptoId = details.id;
+    const priceUsd = details.priceUsd;
 
     if (!email || !cryptoId || !priceUsd) return;
 
@@ -42,19 +81,17 @@ export default Ember.Controller.extend({
       .then(res => res.json())
       .then(data => {
         const holdingAmount = data.amountHeld || 0;
-        const invested = data.totalInvested || 0;
-        const currentValue = data.currentValue || 0;
-        // const diff = currentValue - invested;
-        const diff=holdingAmount==0?0:data.profitOrLoss;
+        const diff = holdingAmount === 0 ? 0 : data.profitOrLoss;
+
         this.set('holdingAmount', holdingAmount.toFixed(8));
-        this.set('holdingProfit', diff >= 0 ? diff.toFixed(2) : 0);
-        this.set('holdingLoss', diff < 0 ? Math.abs(diff).toFixed(2) : 0);
+        this.set('holdingProfit', diff >= 0 ? diff.toFixed(2) : '0.00');
+        this.set('holdingLoss', diff < 0 ? Math.abs(diff).toFixed(2) : '0.00');
       })
       .catch(err => {
         console.error("Error fetching holdings", err);
-        this.set('holdingAmount', 0);
-        this.set('holdingProfit', 0);
-        this.set('holdingLoss', 0);
+        this.set('holdingAmount', '0.00000000');
+        this.set('holdingProfit', '0.00');
+        this.set('holdingLoss', '0.00');
       });
   },
 
@@ -68,7 +105,7 @@ export default Ember.Controller.extend({
     if (!candles || !Array.isArray(candles)) return;
 
     const seriesData = candles.map(d => ({
-      x: new Date(d[0]),
+      x: new Date(d[0] + (5.5 * 60 * 60 * 1000)),
       y: [parseFloat(d[1]), parseFloat(d[2]), parseFloat(d[3]), parseFloat(d[4])]
     }));
 
@@ -87,7 +124,7 @@ export default Ember.Controller.extend({
       }
     };
 
-    Ember.run.scheduleOnce('afterRender', this, () => {
+    Ember.run.scheduleOnce('afterRender', this, function () {
       const chartEl = document.querySelector("#cryptoChart");
       if (chartEl) {
         this.chart = new ApexCharts(chartEl, options);
@@ -143,29 +180,28 @@ export default Ember.Controller.extend({
           return response.json();
         })
         .then(data => {
-  console.log('Trade success:', data);
-  this.set('tradeStatus', 'Trade successful!');
-  this.fetchBalance();
-  this.fetchHoldings();
+          console.log('Trade success:', data);
+          this.set('tradeStatus', 'Trade successful!');
+          this.fetchBalance();
+          this.fetchHoldings();
 
-  const updatedHold = data.amountHeld <= 0.00000001 ? 0 : data.amountHeld;
-  const invested = parseFloat(data.totalInvested) || 0;
-  const pnl = parseFloat(data.unrealizedProfit) || 0;
+          const updatedHold = data.amountHeld <= 0.00000001 ? 0 : data.amountHeld;
+          const pnl = parseFloat(data.unrealizedProfit) || 0;
 
-  this.set('usdBalance', parseFloat(data.updatedBalance).toFixed(2));
-  this.set('holdingAmount', updatedHold.toFixed(8));
-
-  if (updatedHold === 0) {
-    this.set('holdingProfit', '0.00');
-    this.set('holdingLoss', '0.00');
-  } else if (pnl > 0) {
-    this.set('holdingProfit', pnl.toFixed(2));
-    this.set('holdingLoss', '0.00');
-  } else {
-    this.set('holdingProfit', '0.00');
-    this.set('holdingLoss', Math.abs(pnl).toFixed(2));
-  }
-}).catch(err => {
+          this.set('usdBalance', parseFloat(data.updatedBalance).toFixed(2));
+          this.set('holdingAmount', updatedHold.toFixed(8));
+          if (updatedHold === 0) {
+            this.set('holdingProfit', '0.00');
+            this.set('holdingLoss', '0.00');
+          } else if (pnl > 0) {
+            this.set('holdingProfit', pnl.toFixed(2));
+            this.set('holdingLoss', '0.00');
+          } else {
+            this.set('holdingProfit', '0.00');
+            this.set('holdingLoss', Math.abs(pnl).toFixed(2));
+          }
+        })
+        .catch(err => {
           console.error(err);
           this.set('tradeStatus', 'Trade failed. Please try again.');
         });
@@ -173,17 +209,12 @@ export default Ember.Controller.extend({
   },
 
   init() {
-    this._super(...arguments);
+    this._super();
     this.set('tradeType', 'buy');
-    this.fetchHoldings();
     this.fetchBalance();
-    if (this.get('model.details.priceUsd')) {
-      
-    } else {
-      setTimeout(() => {
-        this.fetchHoldings();
-        this.fetchBalance();
-      }, 2000);
-    }
+
+    Ember.run.later(this, () => {
+      this.fetchHoldings();
+    }, 1000);
   }
 });

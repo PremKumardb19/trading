@@ -34,7 +34,9 @@ export default Ember.Controller.extend({
         name: c.name,
         priceUsd: parseFloat(c.priceUsd).toFixed(2),
         changePercent24Hr: parseFloat(c.changePercent24Hr).toFixed(2),
-        symbol: c.symbol.toLowerCase()
+        symbol: c.symbol.toLowerCase(),
+        iconUrl: `https://cryptoicon-api.pages.dev/api/icon/${c.symbol && typeof c.symbol === 'string' ? c.symbol.toLowerCase() : ''}`
+
       })));
     });
   },

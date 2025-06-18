@@ -1,11 +1,12 @@
 import Ember from 'ember';
 
 export default Ember.Route.extend({
-   beforeModel() {
+  beforeModel() {
     if (!localStorage.getItem('email')) {
       this.transitionTo('login');
     }
   },
+
   model() {
     return Ember.$.getJSON("http://localhost:1010/trading-backend/all-crypto").then(data => {
       if (!Array.isArray(data)) {
@@ -14,15 +15,32 @@ export default Ember.Route.extend({
       }
 
       return {
-        cryptos: data.map(c => ({
-          id: c.id,
-          name: c.name,
-          priceUsd: parseFloat(c.priceUsd).toFixed(2),
-          changePercent24Hr: parseFloat(c.changePercent24Hr).toFixed(2),
-          symbol: c.symbol.toLowerCase()
-        }))
+        cryptos: data.map(c => {
+          const rawSymbol = typeof c.symbol === 'string' ? c.symbol : '';
+          const iconUrl = `https://cryptoicon-api.pages.dev/api/icon/${rawSymbol.toLowerCase()}`;
+          
+          return {
+            id: c.id,
+            name: c.name,
+            priceUsd: parseFloat(c.priceUsd).toFixed(2),
+            changePercent24Hr: parseFloat(c.changePercent24Hr).toFixed(2),
+            symbol: rawSymbol,          
+            iconUrl: iconUrl            
+          };
+        })
       };
     });
+  },
+
+  setupController(controller, model) {
+    this._super(controller, model);
+    controller.set('cryptos', model.cryptos);
+
+    let iconMap = {};
+    model.cryptos.forEach(c => {
+      iconMap[c.symbol] = c.iconUrl;
+    });
+    controller.set('iconMap', iconMap);
   },
 
   activate() {

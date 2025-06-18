@@ -12,6 +12,8 @@ Router.map(function() {
   this.route('dashboard');
   this.route('crypto', { path: '/crypto/:id' });
   this.route('funding');
+  this.route('news');
+  this.route('converter');
 });
 
 export default Router;
