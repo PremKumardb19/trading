@@ -27,24 +27,25 @@ export default Ember.Controller.extend({
     }
 
     const payload = { username, email, password };
+    
 
     fetch('http://localhost:1010/trading-backend/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     })
-      .then((response) => {
-        if (response.ok) {
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.status === 'success' && data.token) {
           localStorage.setItem("email", email);
+          localStorage.setItem("token", data.token); 
           alert('Registration successful!');
-          this.set('username','');
-          this.set('email','');
-          this.set('password','');
+          this.set('username', '');
+          this.set('email', '');
+          this.set('password', '');
           this.transitionToRoute('dashboard');
         } else {
-          response.text().then((errorText) =>
-            alert('Registration failed: ' + errorText)
-          );
+          alert('Registration failed: ' + (data.message || 'Unknown error'));
         }
       })
       .catch((err) => {

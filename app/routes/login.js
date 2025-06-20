@@ -8,4 +8,11 @@ export default Ember.Route.extend({
       controller.set('status','');
     }
   }
+   
+//   ,
+//   actions: {
+//   save() {
+//     console.log('Route: save');
+//   }
+// }
 });

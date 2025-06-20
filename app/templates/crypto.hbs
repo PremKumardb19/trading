@@ -1,19 +1,16 @@
-<h2 style="text-align:center; color: #2c3e50;">{{model.details.name}} Details</h2>
+<h2 class="crypto-title">{{model.details.name}} Details</h2>
 
-<p style="text-align:center; font-size: 18px; color: #34495e;">
+<p class="crypto-subinfo">
   <b>Price:</b> ${{model.details.priceUsd}} &nbsp;|&nbsp;
   <b>Change:</b>
-  <span style="color:{{if (is-negative model.details.changePercent24Hr) "red" "green"}};">
+  <span class="{{if (is-negative model.details.changePercent24Hr) "crypto-change-negative" "crypto-change-positive"}}">
     {{model.details.changePercent24Hr}}%
   </span>
 </p>
 
-<div id="cryptoChart" style="width: 90%; margin: auto; border: 1px solid #ccc; padding: 10px;">
+<div id="cryptoChart"></div>
 
-</div>
-
-
-<div style="width: 90%; margin: auto; margin-top: 20px; padding: 15px; border: 1px solid #ccc;">
+<div class="trade-box">
   <h3>Trade {{model.details.name}}</h3>
 
 <form id="tradeForm" {{action "handleTrade" on="submit" target=this}}>
@@ -29,25 +26,29 @@
     }}
   </label>
 
-  <br><br>
-
-  <select onchange={{action "updateType" value="target.value"}}>
-    <option value="buy" selected={{buySelected}}>Buy</option>
-    <option value="sell" selected={{sellSelected}}>Sell</option>
-  </select>
+  <label>
+    Trade Type:
+    <select onchange={{action "updateType" value="target.value"}}>
+      <option value="buy" selected={{buySelected}}>Buy</option>
+      <option value="sell" selected={{sellSelected}}>Sell</option>
+    </select>
+  </label>
 
   <button type="submit">Confirm Trade</button>
 </form>
 
-{{#if this.tradeStatus}}
-  <p style="margin-top: 10px; color: #2980b9;">{{this.tradeStatus}}</p>
-{{/if}}
 
-<hr>
-<h4>Your USD Balance: ${{this.usdBalance}}</h4>
-<h4>Your {{model.details.name}} Holdings</h4>
-<p><b>Quantity:</b> {{this.holdingAmount}} {{model.details.symbol}}</p>
-<p style="color:green;"><b>Profit:</b> ${{this.holdingProfit}}</p>
-<p style="color:red;"><b>Loss:</b> ${{this.holdingLoss}}</p>
+  {{#if this.tradeStatus}}
+    <p style="color: #2980b9;">{{this.tradeStatus}}</p>
+  {{/if}}
 
+  <hr>
+
+  <div class="holdings-info">
+    <h4>Your USD Balance: ${{this.usdBalance}}</h4>
+    <h4>Your {{model.details.name}} Holdings</h4>
+    <p><b>Quantity:</b> {{this.holdingAmount}} {{model.details.symbol}}</p>
+    <p style="color:green;"><b>Profit:</b> ${{this.holdingProfit}}</p>
+    <p style="color:red;"><b>Loss:</b> ${{this.holdingLoss}}</p>
+  </div>
 </div>

@@ -1,4 +1,5 @@
 import Ember from 'ember';
+import $ from 'jquery';
 
 export default Ember.Route.extend({
   beforeModel() {
@@ -8,7 +9,15 @@ export default Ember.Route.extend({
   },
 
   model() {
-    return Ember.$.getJSON("http://localhost:1010/trading-backend/all-crypto").then(data => {
+    const token = localStorage.getItem('token');
+
+    return $.ajax({
+      url: "http://localhost:1010/trading-backend/all-crypto",
+      method: "GET",
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    }).then(data => {
       if (!Array.isArray(data)) {
         console.warn("Crypto data is not ready:", data);
         return { cryptos: [] };

@@ -22,10 +22,11 @@ export default Ember.Controller.extend({
       event.preventDefault();
 
       const email = localStorage.getItem("email");
+      const token = localStorage.getItem("token");
       const amount = this.get('amount');
 
-      if (!email || !amount) {
-        this.set('status', 'Email or amount missing.');
+      if (!email || !amount || !token) {
+        this.set('status','Email, amount, or token missing.');
         return;
       }
 
@@ -33,6 +34,7 @@ export default Ember.Controller.extend({
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
+          'Authorization': `Bearer ${token}`
         },
         body: `email=${encodeURIComponent(email)}&amount=${encodeURIComponent(amount)}`
       })
@@ -42,7 +44,7 @@ export default Ember.Controller.extend({
             this.set('status', 'Funds added successfully!');
             this.transitionToRoute('dashboard');
           } else {
-            this.set('status', 'Funding failed.');
+            this.set('status', 'Funding failed.'); 
           }
         })
         .catch(error => {

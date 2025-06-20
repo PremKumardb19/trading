@@ -4,7 +4,52 @@ export default Ember.Controller.extend({
   username: '',
   password: '',
   status: '',
+// usernameChanged: function() {
+//     console.log('Username has been changed to:', this.get('username'));
+//     console.log('password has been changed to:', this.get('password'));
+//   }.observes('username','password'),
+// init() {
+//   this._super(...arguments);
 
+  // Will run only once, even if called twice in same run loop
+// const sharedFn = function() {
+//   console.log("✅ I should run only once");
+// };
+
+// Ember.run.scheduleOnce('afterRender', this, sharedFn);
+// Ember.run.scheduleOnce('afterRender', this, sharedFn);
+// Ember.run.schedule('afterRender',this,sharedFn)
+// Ember.run.schedule('afterRender',this,sharedFn)
+// },
+//  init() {
+//     this.set('username', 'broken');
+//     console.log('init ran but no super');
+//   }
+// init() {
+//   this._super(...arguments);
+
+//   console.log("🟠 init called");
+//   const f=()=>{
+//     console.log('✅ phase:', Ember.run.currentRunLoop);
+
+//  console.log("✅ scheduleOnce: I run only once");
+//   }
+//   Ember.run(() => {
+//     this.set('price', 50000);
+//     this.set('price', 60000);
+
+//     Ember.run.scheduleOnce('afterRender', this,f);
+
+//     Ember.run.scheduleOnce('afterRender', this, f);
+
+//     Ember.run.schedule('afterRender', this, f);
+
+//     Ember.run.schedule('afterRender', this,f);
+//   });
+
+//   console.log("🟢 init end");
+// }
+// ,
   init() {
     this._super(...arguments);
     Ember.run.scheduleOnce('afterRender', this, function () {
@@ -12,11 +57,16 @@ export default Ember.Controller.extend({
         this.send('login', event);
       });
     });
+    
   },
 
   actions: {
+  //     save() {
+  //   console.log('Controller: save'  );
+  //   return true; 
+  // },
     login(event) {
-      event.preventDefault(); 
+      event.preventDefault();
 
       let self = this;
 
@@ -29,7 +79,9 @@ export default Ember.Controller.extend({
         },
         success(response) {
           if (response.status === "success") {
-            localStorage.setItem("email", response.email || self.get('username')); 
+            localStorage.setItem("email", response.email || self.get('username'));
+            localStorage.setItem("token", response.token); 
+
             self.set('status', 'Login successful!');
             self.transitionToRoute('dashboard');
           } else {

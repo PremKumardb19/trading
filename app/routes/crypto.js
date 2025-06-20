@@ -9,22 +9,37 @@ export default Ember.Route.extend({
   },
 
   model(params) {
-    var baseId = params.id;
+    const baseId = params.id;
+    const token = localStorage.getItem('token');
+
+    const ajaxHeaders = {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    };
+
+    const candleRequest = $.ajax({
+      url: `http://localhost:1010/trading-backend/candles?baseId=${baseId}&quoteId=tether`,
+      method: 'GET',
+      ...ajaxHeaders
+    });
+
+    const allCryptoRequest = $.ajax({
+      url: 'http://localhost:1010/trading-backend/all-crypto',
+      method: 'GET',
+      ...ajaxHeaders
+    });
 
     return Ember.RSVP.hash({
-      candleData: $.getJSON('http://localhost:1010/trading-backend/candles?baseId=' + baseId + '&quoteId=tether'),
-      allCryptos: $.getJSON('http://localhost:1010/trading-backend/all-crypto')
+      candleData: candleRequest,
+      allCryptos: allCryptoRequest
     }).then(function(result) {
-      var crypto = result.allCryptos.find(function(c) {
-        return c.id === baseId;
-      });
-
+      const crypto = result.allCryptos.find(c => c.id === baseId);
       if (!crypto) {
         return { error: "Crypto not found" };
       }
 
       return {
-        baseId: baseId,
         details: {
           id: crypto.id,
           name: crypto.name,
@@ -40,37 +55,38 @@ export default Ember.Route.extend({
     });
   },
 
-  activate() {
-    this.controllerFor('crypto').startPolling();
+  setupController(controller, model) {
+    this._super(controller, model);
+    controller.set('model', model);
+
+    
+    Ember.run.scheduleOnce('afterRender', this, function () {
+      controller.setupChart();         
+      controller.startPolling();       
+      controller.fetchBalance();       
+      controller.fetchHoldings();      
+    });
   },
 
   deactivate() {
     this.controllerFor('crypto').stopPolling();
-  },
-
-  setupController(controller, model) {
-    this._super(controller, model);
-
-    Ember.run.scheduleOnce('afterRender', controller, 'setupChart');
-
-    controller.fetchBalance();
-    controller.fetchHoldings(model.baseId);
   }
 
-  // resetController(controller, isExiting) {
-  //   if (isExiting) {
-  //     controller.setProperties({
-  //       chart: null,
-  //       amount: '',
-  //       tradeType: 'buy',
-  //       tradeStatus: '',
-  //       usdBalance: '0.00',
-  //       holdingAmount: '0.00000000',
-  //       holdingProfit: 0,
-  //       holdingLoss: 0,
-  //       buySelected: true,
-  //       sellSelected: false
-  //     });
-  //   }
-  // }
+
+  /*
+  resetController(controller, isExiting) {
+    if (isExiting) {
+      controller.setProperties({
+        chart: null,
+        amount: '',
+        tradeType: 'buy',
+        tradeStatus: '',
+        usdBalance: '0.00',
+        holdingAmount: '0.00000000',
+        holdingProfit: 0,
+        holdingLoss: 0
+      });
+    }
+  }
+  */
 });
