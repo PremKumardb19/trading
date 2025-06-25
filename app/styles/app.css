@@ -268,7 +268,12 @@ td img:hover {
   background-size: contain;
   object-fit: contain;
 }
-
+.controls {
+  display: flex;
+  gap: 1rem;
+  margin: 10px 0;
+  align-items: center;
+}
 .newsContainer{
   display:flex;
   flex-wrap: wrap;

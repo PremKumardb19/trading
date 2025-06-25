@@ -1,6 +1,11 @@
 import Ember from 'ember';
 
 export default Ember.Controller.extend({
+  queryParams: ['price', 'change', 'marketCap'],
+
+  price: null,
+  change: null,
+  marketCap: null,
   username: '',
   email: '',
   password: '',
@@ -26,7 +31,7 @@ export default Ember.Controller.extend({
       this.fetchCandle();
       this.pollinginterval = setInterval(() => {
         this.fetchCandle();
-        console.log("Polling...", this.model && this.model.details ? this.model.details.id : 'N/A');
+        console.log("Polling...",this.pollinginterval, this.model && this.model.details ? this.model.details.id : 'N/A');
       }, 2000);
     }
   },
@@ -39,26 +44,38 @@ export default Ember.Controller.extend({
   },
 
   fetchCandle() {
-    const baseId = this.model && this.model && this.model.details && this.model.details.id?this.model.details.id:null;
+    const baseId = this.model && this.model.details && this.model.details.id ? this.model.details.id : null;
     if (!baseId) return console.log("No baseId in fetchCandle");
 
     const token = localStorage.getItem("token");
     const self = this;
-
+    let email=localStorage.getItem('email')
     return Ember.$.ajax({
-      url: `http://localhost:1010/trading-backend/candles?baseId=${baseId}&quoteId=tether`,
+      url: `http://localhost:1010/trading-backend/fetch?action=candle&baseId=${baseId}&quoteId=tether&email=${encodeURIComponent(email)}`,
       headers: { 'Authorization': `Bearer ${token}` },
       success(candleData) {
         self.model.candles = candleData;
         self.set('model', self.model);
-
+        self.set('model.priceUsd', parseFloat(candleData[candleData.length - 1][1]).toFixed(2));
         const seriesData = candleData.map(d => ({
           x: new Date(d[0] + (5.5 * 60 * 60 * 1000)),
           y: [parseFloat(d[1]), parseFloat(d[2]), parseFloat(d[3]), parseFloat(d[4])]
         }));
 
+        let currentMin = null, currentMax = null;
+        if (self.chart && self.chart.w && self.chart.w.globals) {
+          const xAxis = self.chart.w.globals.minX;
+          const maxX = self.chart.w.globals.maxX;
+          currentMin = xAxis;
+          currentMax = maxX;
+        }
+
         if (self.chart) {
           self.chart.updateSeries([{ data: seriesData }], true);
+
+          if (currentMin && currentMax) {
+            self.chart.zoomX(currentMin, currentMax);
+          }
         } else {
           self.setupChart();
         }
@@ -74,17 +91,15 @@ export default Ember.Controller.extend({
     const token = localStorage.getItem('token');
     if (!email) return;
 
-    fetch(`http://localhost:1010/trading-backend/balance?email=${email}`, {
+    fetch(`http://localhost:1010/trading-backend/wallet?action=balance&email=${encodeURIComponent(email)}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     })
       .then(res => res.json())
       .then(data => {
-        if(isNaN(data.balance)){
-           
-          this.set('usdBalance','0.00');
-        }
-        else if (data.balance) {
-          console.log("in response")
+        if (isNaN(data.balance)) {
+          this.set('usdBalance', '0.00');
+        } else if (data.balance) {
+          console.log("in response");
           this.set('usdBalance', parseFloat(data.balance).toFixed(2));
         }
       })
@@ -92,7 +107,7 @@ export default Ember.Controller.extend({
         console.error("Error fetching balance", err);
         this.set('usdBalance', '0.00');
       });
-      console.log("after fetch")
+    console.log("after fetch");
   },
 
   fetchHoldings() {
@@ -102,7 +117,7 @@ export default Ember.Controller.extend({
 
     if (!email || !cryptoId || !priceUsd) return;
 
-    fetch(`http://localhost:1010/trading-backend/holdings?email=${email}&cryptoId=${cryptoId}&priceUsd=${priceUsd}`, {
+    fetch(`http://localhost:1010/trading-backend/wallet?action=holdings&email=${encodeURIComponent(email)}&cryptoId=${cryptoId}&priceUsd=${priceUsd}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     })
       .then(res => res.json())
@@ -122,59 +137,73 @@ export default Ember.Controller.extend({
       });
   },
 
-setupChart() {
-  if (this.chart) {
-    this.chart.destroy(); 
-    this.chart = null;
-  }
+  setupChart() {
+    if (this.chart) {
+      this.chart.destroy();
+      this.chart = null;
+    }
 
-  Ember.run.scheduleOnce('afterRender', this, function () {
-    Ember.run.later(this, function () {
-      const chartEl = document.querySelector("#cryptoChart");
+    Ember.run.scheduleOnce('afterRender', this, function () {
+      Ember.run.later(this, function () {
+        const chartEl = document.querySelector("#cryptoChart");
 
-      if (!chartEl) {
-        console.warn("Chart container #cryptoChart not found.");
-        return;
-      }
-
-      const model = this.get('model');
-      const candles = model && model.candles;
-      if (!candles || !Array.isArray(candles)) return;
-
-      const seriesData = candles.map(d => ({
-        x: new Date(d[0] + (5.5 * 60 * 60 * 1000)),
-        y: [parseFloat(d[1]), parseFloat(d[2]), parseFloat(d[3]), parseFloat(d[4])]
-      }));
-
-      const options = {
-        chart: {
-          id: 'realtime',
-          type: 'candlestick',
-          height: 500,
-          toolbar: { show: true }
-        },
-        series: [{ data: seriesData }],
-        xaxis: { type: 'datetime', labels: { rotate: -45 } },
-        plotOptions: { candlestick: { wick: { useFillColor: true } } },
-        yaxis: { tooltip: { enabled: true }, decimalsInFloat: 2 },
-        tooltip: {
-          shared: true,
-          custom({ series, seriesIndex, dataPointIndex, w }) {
-            const ohlc = w.globals.initialSeries[seriesIndex].data[dataPointIndex].y;
-            return `<div style="padding: 6px"><b>O:</b> ${ohlc[0]}<br><b>H:</b> ${ohlc[1]}<br><b>L:</b> ${ohlc[2]}<br><b>C:</b> ${ohlc[3]}</div>`;
-          }
+        if (!chartEl) {
+          console.warn("Chart container #cryptoChart not found.");
+          return;
         }
-      };
 
-      this.chart = new ApexCharts(chartEl, options);
-      this.chart.render();
+        const model = this.get('model');
+        const candles = model && model.candles;
+        if (!candles || !Array.isArray(candles)) return;
 
-    }, 200);
-  });
-}
+        const seriesData = candles.map(d => ({
+          x: new Date(d[0] + (5.5 * 60 * 60 * 1000)),
+          y: [parseFloat(d[1]), parseFloat(d[2]), parseFloat(d[3]), parseFloat(d[4])]
+        }));
 
+        const options = {
+          chart: {
+            id: 'realtime',
+            type: 'candlestick',
+            height: 500,
+            toolbar: { show: true },
+            zoom: {
+              enabled: true,
+              type: 'x',
+              autoScaleYaxis: false,
+              allowMouseWheelZoom: true,
+              zoomedArea: {
+                fill: {
+                  color: '#90CAF9',
+                  opacity: 0.4
+                },
+                stroke: {
+                  color: '#0D47A1',
+                  opacity: 0.4,
+                  width: 1
+                }
+              }
+            }
+          },
+          series: [{ data: seriesData }],
+          xaxis: { type: 'datetime', labels: { rotate: -45 } },
+          plotOptions: { candlestick: { wick: { useFillColor: true } } },
+          yaxis: { tooltip: { enabled: true }, decimalsInFloat: 2 },
+          tooltip: {
+            shared: true,
+            custom({ series, seriesIndex, dataPointIndex, w }) {
+              const ohlc = w.globals.initialSeries[seriesIndex].data[dataPointIndex].y;
+              return `<div style="padding: 6px"><b>O:</b> ${ohlc[0]}<br><b>H:</b> ${ohlc[1]}<br><b>L:</b> ${ohlc[2]}<br><b>C:</b> ${ohlc[3]}</div>`;
+            }
+          }
+        };
 
-,
+        this.chart = new ApexCharts(chartEl, options);
+        this.chart.render();
+
+      }, 200);
+    });
+  },
 
   actions: {
     updateAmount(event) {
@@ -209,7 +238,7 @@ setupChart() {
         timestamp: new Date().toISOString()
       };
 
-      fetch('http://localhost:1010/trading-backend/trade', {
+      fetch(`http://localhost:1010/trading-backend/trade?email=${encodeURIComponent(email)}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -218,7 +247,7 @@ setupChart() {
         body: JSON.stringify(tradeData)
       })
         .then(response => {
-          if (!response.ok) throw new Error('Tra a fmde failed');
+          if (!response.ok) throw new Error('Trade failed');
           return response.json();
         })
         .then(data => {

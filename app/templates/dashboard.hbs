@@ -3,12 +3,11 @@
   <div class="sidebar left-sidebar">
     <h3> Market Stats</h3>
     <ul class="stat-list">
-      <li><strong>Total Coins:</strong> {{model.cryptos.length}}</li>
+      <li><strong>Total Coins:</strong> {{filteredCryptos.length}}</li>
       <li style="color:green"><strong>Top Gainer:</strong> {{topGainer.name}} ({{topGainer.changePercent24Hr}}%)</li>
       <li style="color:red"><strong>Top Loser:</strong> {{topLoser.name}} ({{topLoser.changePercent24Hr}}%)</li>
     </ul>
   </div>
-
 
   <div class="main-content">
     <div class="dashboard-header">
@@ -19,6 +18,32 @@
 
     <h2>Live Crypto Dashboard</h2>
 
+    <div class="controls">
+  <label>Sort by: 
+    <select onchange={{action "setSortField" value="target.value"}} value={{sortField}}>
+      <option value="name">Name</option>
+      <option value="priceUsd">Price</option>
+      <option value="changePercent24Hr">Change %</option>
+    </select>
+  </label>
+
+  <label>Order:
+    <select onchange={{action "setSortOrder" value="target.value"}} value={{sortOrder}}>
+      <option value="asc">Ascending</option>
+      <option value="desc">Descending</option>
+    </select>
+  </label>
+
+  <label>Items per page:
+    <select onchange={{action "setItemsPerPage" value="target.value"}} value={{itemsPerPage}}>
+      <option value="5">5</option>
+      <option value="10">10</option>
+      <option value="25">25</option>
+    </select>
+  </label>
+</div>
+
+
     <table>
       <thead>
         <tr>
@@ -28,13 +53,10 @@
         </tr>
       </thead>
       <tbody>
-        {{#each model.cryptos as |crypto|}}
-          <tr {{action "goToCrypto" crypto.id crypto.priceUsd crypto.changePercent24Hr}}>
-            <td>
-              <img class="crypto-icon" src="{{crypto.iconUrl}}" onerror="this.onerror=null;this.src='/eth.png';">
-              {{crypto.name}}
-            </td>
-            <td>${{crypto.priceUsd}}</td>
+        {{#each pagedCryptos as |crypto|}}
+        <tr {{action "goToCrypto" crypto}}>
+            <td><img class="crypto-icon" src="{{crypto.iconUrl}}"> {{crypto.name}}</td>
+            <td>${{crypto.priceFormatted}}</td>
             <td style="color:{{if (is-negative crypto.changePercent24Hr) "red" "green"}};">
               {{crypto.changePercent24Hr}}%
             </td>
@@ -42,19 +64,26 @@
         {{/each}}
       </tbody>
     </table>
+
+    <div class="pagination">
+      <button {{action "prevPage"}} disabled={{isFirstPage}}>Previous</button>
+      Page {{currentPage}} of {{totalPages}}
+      <button {{action "nextPage"}} disabled={{isLastPage}}>Next</button>
+    </div>
   </div>
 
   <div class="sidebar right-sidebar">
-  <h3> Top 10 Trending</h3>
-  <ul class="trending-list">
-    {{#each topTrending as |coin|}}
-      <li>
-        <img src="{{coin.iconUrl}}" class="crypto-icon" onerror="this.onerror=null;this.src='/eth.png';">
-        {{coin.name}} <span class="trend-change">(+{{coin.changePercent24Hr}}%)</span>
-      </li>
-    {{else}}
-      <li>No data available</li>
-    {{/each}}
-  </ul>
-</div>
+    <h3> Top 10 Trending</h3>
+    <ul class="trending-list">
+      {{#each topTrending as |coin|}}
+        <li>
+          <img class="crypto-icon" src="{{coin.iconUrl}}">
+          {{coin.name}} <span class="trend-change">(+{{coin.changePercent24Hr}}%)</span>
+        </li>
+      {{else}}
+        <li>No data available</li>
+      {{/each}}
+    </ul>
+  </div>
+
 </div>

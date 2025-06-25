@@ -29,16 +29,16 @@ export default Ember.Controller.extend({
     const payload = { username, email, password };
     
 
-    fetch('http://localhost:1010/trading-backend/register', {
+    fetch('http://localhost:1010/trading-backend/auth?action=register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     })
       .then((response) => response.json())
       .then((data) => {
-        if (data.status === 'success' && data.token) {
+        if (data.status === 'success' && data.accessToken) {
           localStorage.setItem("email", email);
-          localStorage.setItem("token", data.token); 
+          localStorage.setItem("token", data.accessToken); 
           alert('Registration successful!');
           this.set('username', '');
           this.set('email', '');

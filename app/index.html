@@ -20,6 +20,25 @@
     <script src="assets/vendor.js"></script>
     <script src="assets/trading-app.js"></script>
  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+ <script>
+  const failedIcons = {};
+window.addEventListener('beforeunload',function(event){
+   if(localStorage.getItem('email') && localStorage.getItem('token')){
+    localStorage.removeItem('email')
+    localStorage.removeItem('password')
+   }
+})
+  function handleMissingIcon(img, symbol) {
+    if (!failedIcons[symbol]) {
+      console.warn("Missing icon:", symbol);
+      failedIcons[symbol] = true;
+    }
+
+    img.onerror = null; 
+    img.src = "/icons/eth.png"; 
+  }
+</script>
+
 
 
 

@@ -2,6 +2,8 @@ import Ember from 'ember';
 import $ from 'jquery';
 
 export default Ember.Route.extend({
+
+
   beforeModel() {
     if (!localStorage.getItem('email')) {
       this.transitionTo('login');
@@ -10,7 +12,14 @@ export default Ember.Route.extend({
 
   model(params) {
     const baseId = params.id;
+     const allParams = this.paramsFor('crypto');
+     const passedMarketCap = allParams.marketCap;
+     console.log("all params",allParams)
     const token = localStorage.getItem('token');
+    const email = localStorage.getItem('email');
+    console.log("params",params)
+    console.log("cap",passedMarketCap)
+    console.log("baseId",baseId)
 
     const ajaxHeaders = {
       headers: {
@@ -19,13 +28,13 @@ export default Ember.Route.extend({
     };
 
     const candleRequest = $.ajax({
-      url: `http://localhost:1010/trading-backend/candles?baseId=${baseId}&quoteId=tether`,
+      url: `http://localhost:1010/trading-backend/fetch?action=candle&baseId=${baseId}&quoteId=tether&email=${encodeURIComponent(email)}`,
       method: 'GET',
       ...ajaxHeaders
     });
 
     const allCryptoRequest = $.ajax({
-      url: 'http://localhost:1010/trading-backend/all-crypto',
+      url: `http://localhost:1010/trading-backend/fetch?action=crypto&email=${encodeURIComponent(email)}`,
       method: 'GET',
       ...ajaxHeaders
     });
@@ -45,7 +54,8 @@ export default Ember.Route.extend({
           name: crypto.name,
           symbol: crypto.symbol,
           priceUsd: parseFloat(crypto.priceUsd).toFixed(2),
-          changePercent24Hr: parseFloat(crypto.changePercent24Hr).toFixed(2)
+          changePercent24Hr: parseFloat(crypto.changePercent24Hr).toFixed(2),
+          marketCapUsd: passedMarketCap || "Unknown"  // 👈 Safely use passed value
         },
         candles: result.candleData
       };
@@ -59,34 +69,15 @@ export default Ember.Route.extend({
     this._super(controller, model);
     controller.set('model', model);
 
-    
     Ember.run.scheduleOnce('afterRender', this, function () {
-      controller.setupChart();         
-      controller.startPolling();       
-      controller.fetchBalance();       
-      controller.fetchHoldings();      
+      controller.setupChart();
+      controller.startPolling();
+      controller.fetchBalance();
+      controller.fetchHoldings();
     });
   },
 
   deactivate() {
     this.controllerFor('crypto').stopPolling();
   }
-
-
-  /*
-  resetController(controller, isExiting) {
-    if (isExiting) {
-      controller.setProperties({
-        chart: null,
-        amount: '',
-        tradeType: 'buy',
-        tradeStatus: '',
-        usdBalance: '0.00',
-        holdingAmount: '0.00000000',
-        holdingProfit: 0,
-        holdingLoss: 0
-      });
-    }
-  }
-  */
 });

@@ -71,7 +71,7 @@ export default Ember.Controller.extend({
       let self = this;
 
       Ember.$.ajax({
-        url: 'http://localhost:1010/trading-backend/login',
+        url: 'http://localhost:1010/trading-backend/auth?action=login',
         method: 'POST',
         data: {
           username: this.get('username'),
@@ -80,7 +80,7 @@ export default Ember.Controller.extend({
         success(response) {
           if (response.status === "success") {
             localStorage.setItem("email", response.email || self.get('username'));
-            localStorage.setItem("token", response.token); 
+            localStorage.setItem("token", response.accessToken); 
 
             self.set('status', 'Login successful!');
             self.transitionToRoute('dashboard');
