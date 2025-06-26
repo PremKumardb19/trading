@@ -19,23 +19,18 @@ export default Ember.Controller.extend({
   chart: null,
   pollinginterval: null,
 
-  // Sorting & Pagination state
   sortField: 'name',
   sortOrder: 'asc',
   itemsPerPage: 10,
   currentPage: 1,
-
-  // Sorting dropdown options
   sortDefinition: Ember.computed('sortField', 'sortOrder', function () {
     let field = this.get('sortField');
     let order = this.get('sortOrder');
     return [`${field}:${order}`];
   }),
 
-  // Computed: apply sorting
   sortedCryptos: Ember.computed.sort('model.cryptos', 'sortDefinition'),
 
-  // Computed: paged result
   pagedCryptos: Ember.computed('sortedCryptos.[]', 'currentPage', 'itemsPerPage', function () {
     let page = this.get('currentPage');
     let perPage = this.get('itemsPerPage');
@@ -43,7 +38,6 @@ export default Ember.Controller.extend({
     return this.get('sortedCryptos').slice(start, start + perPage);
   }),
 
-  // Computed: pagination info
   totalPages: Ember.computed('sortedCryptos.length', 'itemsPerPage', function () {
     return Math.ceil(this.get('sortedCryptos.length') / this.get('itemsPerPage'));
   }),
@@ -76,7 +70,7 @@ export default Ember.Controller.extend({
   startPolling: function () {
     this.fetchCryptos();
     if (!this.pollinginterval) {
-      this.set('pollinginterval', setInterval(() => this.fetchCryptos(), 2000));
+      this.set('pollinginterval', setInterval(() => this.fetchCryptos(), 5000));
     }
   },
 
@@ -97,7 +91,7 @@ export default Ember.Controller.extend({
     var iconCache = this.get('iconCache');
 
     if (!token || !email) {
-      console.warn("No token or email found. Redirecting to login.");
+      alert("No token or email found. Redirecting to login.");
       this.transitionToRoute('login');
       return;
     }
@@ -121,8 +115,8 @@ export default Ember.Controller.extend({
             id: c.id,
             name: c.name,
             priceUsd: parseFloat(c.priceUsd),  
-            priceFormatted: parseFloat(c.priceUsd).toFixed(2),
-            changePercent24Hr: parseFloat(c.changePercent24Hr).toFixed(2),
+            priceFormatted: parseFloat(c.priceUsd),
+            changePercent24Hr: parseFloat(c.changePercent24Hr),
             symbol: symbol,
             iconUrl: iconUrl,
             marketCap: c.marketCapUsd

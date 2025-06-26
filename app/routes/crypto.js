@@ -53,9 +53,9 @@ export default Ember.Route.extend({
           id: crypto.id,
           name: crypto.name,
           symbol: crypto.symbol,
-          priceUsd: parseFloat(crypto.priceUsd).toFixed(2),
+          priceUsd: parseFloat(crypto.priceUsd),
           changePercent24Hr: parseFloat(crypto.changePercent24Hr).toFixed(2),
-          marketCapUsd: passedMarketCap || "Unknown"  // 👈 Safely use passed value
+          marketCapUsd: passedMarketCap || "Unknown" 
         },
         candles: result.candleData
       };
@@ -74,6 +74,7 @@ export default Ember.Route.extend({
       controller.startPolling();
       controller.fetchBalance();
       controller.fetchHoldings();
+      controller.fetchCryptoInfo();
     });
   },
 

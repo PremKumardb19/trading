@@ -10,33 +10,45 @@
 
 <div id="cryptoChart"></div>
 
+<div class="marketcap-info" style="margin-top: 1em; padding: 1em; background: #f9f9f9; border: 1px solid #ccc;">
+  <h4>Market Cap Limit (Total Supply):  {{this.model.details.marketCapUsd}}</h4>
+  <h4>Sold Quantity: {{soldCryptoAmount}}</h4>
+  <h4 style="color: darkorange;">
+    USD Required to Buy Remaining: ${{usdRequiredToBuyRemaining}}
+  </h4>
+</div>
+
 <div class="trade-box">
   <h3>Trade {{model.details.name}}</h3>
 
-<form id="tradeForm" {{action "handleTrade" on="submit" target=this}}>
-  <label>
-    {{#if buySelected}}Amount in USD:{{else}}Amount in {{model.details.symbol}}:{{/if}}
-    {{input 
-      type="number" 
-      step=(if buySelected "1" "0.00000001") 
-      min="0.00000001" 
-      placeholder=(if buySelected "Enter USD amount" "Enter crypto amount") 
-      value=amount 
-      required="required"
-    }}
-  </label>
+  <form id="tradeForm" {{action "handleTrade" on="submit" target=this}}>
+    <label>
+      {{#if buySelected}}
+        Amount in USD:
+      {{else}}
+        Amount in {{model.details.symbol}}:
+      {{/if}}
 
-  <label>
-    Trade Type:
-    <select onchange={{action "updateType" value="target.value"}}>
-      <option value="buy" selected={{buySelected}}>Buy</option>
-      <option value="sell" selected={{sellSelected}}>Sell</option>
-    </select>
-  </label>
+     {{input 
+  type="number"
+  step="any"
+  min="0"
+  placeholder=(if buySelected "Enter USD amount" "Enter crypto amount")
+  value=amount
+  required="required"
+}}
+    </label>
 
-  <button type="submit">Confirm Trade</button>
-</form>
+    <label>
+      Trade Type:
+      <select onchange={{action "updateType" value="target.value"}}>
+        <option value="buy" selected={{buySelected}}>Buy</option>
+        <option value="sell" selected={{sellSelected}}>Sell</option>
+      </select>
+    </label>
 
+    <button type="submit">Confirm Trade</button>
+  </form>
 
   {{#if this.tradeStatus}}
     <p style="color: #2980b9;">{{this.tradeStatus}}</p>

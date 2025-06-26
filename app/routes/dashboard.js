@@ -17,6 +17,7 @@ export default Ember.Route.extend({
 
     return $.ajax(url, options).fail((jqXHR) => {
       if (jqXHR.status === 401) {
+        alert("crypto polling forbidden");
         this.transitionTo('login');
       }
       return Ember.RSVP.reject(jqXHR);
@@ -42,8 +43,8 @@ export default Ember.Route.extend({
         return {
           id: c.id,
           name: c.name,
-          priceUsd: parseFloat(c.priceUsd).toFixed(2),
-          priceFormatted: parseFloat(c.priceUsd).toFixed(2),
+          priceUsd: parseFloat(c.priceUsd),
+          priceFormatted: parseFloat(c.priceUsd),
           changePercent24Hr: parseFloat(c.changePercent24Hr).toFixed(2),
           symbol: rawSymbol,
           iconUrl: iconUrl,
